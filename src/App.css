@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme{
+	--color-primary-bg: #d7ddfb;
+	--color-secondary-bg: #babdff;
+	--color-blur: #babdffa4;
+	--color-primary: #5c3a98b3;
+	--color-secondary: #5c3a9880;
+	--color-note-3: #fbd7e4;
+	--color-note-2: #e8d7fb;
+	--color-note-1: #d7ddfb;
+	--color-note-0: #d7ddfba0;
+
+}
+@layer utilities {
+	.bg-note-0 { background-color: var(--color-note-0) }
+	.bg-note-1 { background-color: var(--color-note-1) }
+	.bg-note-2 { background-color: var(--color-note-2) }
+	.bg-note-3 { background-color: var(--color-note-3) }
+ }
+
+:root{
+	@apply bg-primary-bg flex flex-col items-center text-zinc-700 w-full min-h-full;
+}
