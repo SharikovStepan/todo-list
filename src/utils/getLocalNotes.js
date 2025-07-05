@@ -1,6 +1,6 @@
 import { sortNotes } from "./sortNotes";
 
-export const getLocalNotes = (sortNum) => {
+export const getLocalNotes = (sortNum, direction) => {
   const allKeys = Object.keys(localStorage);
   const noteKeys = allKeys.filter((key) => key.startsWith("note_"));
   const sortedKeys = noteKeys.sort((a, b) => {
@@ -9,5 +9,5 @@ export const getLocalNotes = (sortNum) => {
     return numA - numB;
   });
   const notesArray = sortedKeys.map((key) => JSON.parse(localStorage.getItem(key)));
-  return sortNotes(notesArray, sortNum);
+  return sortNotes(notesArray, sortNum, direction);
 };
