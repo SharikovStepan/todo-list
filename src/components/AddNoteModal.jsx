@@ -27,7 +27,6 @@ function AddNoteModal(props) {
   const nowDate = new Date().toLocaleString("ru-RU");
 
   if (!editingNote.noteId) {
-	
     try {
       const lastId = localNotes[localNotes.length - 1].noteId.slice(5);
       noteId = `note_${+lastId + 1}`;
@@ -60,7 +59,7 @@ function AddNoteModal(props) {
       timestampCreate: dates.createTimestamp,
       dateChange: dates.change,
       timestampChange: dates.changeTimestamp,
-      tag: noteTag,
+      tag: noteTag.toLowerCase().replace(/\s+/g, "_"),
       priority: notePriority,
       checked: false,
     };
