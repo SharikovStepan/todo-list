@@ -32,10 +32,6 @@ function Note(props) {
         </div>
 
         <div className="flex gap-1">
-          {/* <Button className={["bg-secondary-bg", "hover:bg-secondary", "w-8", "h-8", "p-2"]}>
-            <img className="w-full h-full" src="images/pencil.png" alt="pencil" />
-          </Button> */}
-
           <Button className={["bg-secondary-bg", "hover:bg-secondary", "w-8", "h-8", "p-2"]}>
             <img className="w-full h-full" src="images/trash.png" alt="trash" />
           </Button>

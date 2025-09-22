@@ -1,42 +1,90 @@
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import "./App.css";
 import Button from "./components/Button";
 import Note from "./components/Note";
 import { getLocalNotes } from "./utils/getLocalNotes";
-import AddNoteModal from "./components/AddNoteModal";
+import EditNote from "./components/EditNote";
 import BlurMask from "./components/BlurMask";
 import OptionList from "./components/OptionList";
 import { sortTags } from "./utils/sortTags";
 import { sortNotes } from "./utils/sortNotes";
 import { checkUniqueTags } from "./utils/checkUniqueTags";
 import Search from "./components/Search";
+import { DEFAULT_TAG, SORTING_KEYS } from "./utils/consts";
+import LogIn from "./components/LogIn";
+import UserName from "./components/UserName";
+import UserInfo from "./components/UserInfo";
 
-const SORTING_KEYS = [
-  { id: "1", name: "Имя" },
-  { id: "2", name: "Приоритет" },
-  { id: "3", name: "Дата создания" },
-  { id: "4", name: "Дата изменения" },
-];
+function uiStateReducer(state, action) {
+  switch (action.type) {
+    case "isNoteEdit":
+      return { ...state, isNoteEdit: action.value };
+    case "isSearch":
+      return { ...state, isSearch: action.value };
+    case "isSignUp":
+      return { ...state, isSignUp: action.value };
+    case "isLogIn":
+      return { ...state, isLogIn: action.value };
+  }
+}
 
-const DEFAULT_TAG = { id: 0, name: "Все теги" };
+function sortReducer(state, action) {
+  switch (action.type) {
+    case "sortType":
+      return { ...state, sortType: action.value };
+    case "sortDirection":
+      return { ...state, sortDirection: action.value };
+    case "currentTag":
+      return { ...state, currentTag: action.value };
+    case "searchText":
+      return { ...state, searchText: action.value };
+  }
+}
+
+const initialUiState = {
+  isNoteEdit: false,
+  isSearch: false,
+  isSignUp: false,
+  isLogIn: false,
+};
+
+const initialSortState = {
+  sortType: localStorage.getItem("sortType") || "4",
+  currentTag: localStorage.getItem("tag") || 0,
+  sortDirection: localStorage.getItem("sortDirection") || 1,
+  searchText: "",
+};
 
 function App() {
-  const [sort, setSort] = useState(localStorage.getItem("sort") || "4");
-  const [notesData, setNotesData] = useState(getLocalNotes(sort));
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isLogined, setIsLogined] = useState(false);
+
+  const [sortState, dispatchSort] = useReducer(sortReducer, initialSortState);
+
+  const [uiState, dispatchUiState] = useReducer(uiStateReducer, initialUiState);
+
+  const [userData, setUserData] = useState({});
+
+  const [notesData, setNotesData] = useState(getLocalNotes(sortState.sortType));
 
   const [noteToEdit, setNoteToEdit] = useState("");
-  const [sortDirection, setSortDirection] = useState(localStorage.getItem("sortDirection") || 1);
-
-  const [tag, setTag] = useState(localStorage.getItem("tag") || 0);
 
   const filterNotesByTag = (tagNum, direction) => {
-    if (tagNum == "0" || !tagNum) return getLocalNotes(sort, direction);
+    if (tagNum == "0" || !tagNum) return getLocalNotes(sortState.sortType, direction);
 
-    return getLocalNotes(sort, direction).filter((note) => note.tag === tagNum);
+    return getLocalNotes(sortState.sortType, direction).filter((note) => note.tag === tagNum);
   };
+
+  const [tags, setTags] = useState(() => {
+    const uniqueTagsArr = checkUniqueTags(notesData);
+
+    localStorage.setItem("tag", sortState.currentTag);
+    localStorage.setItem("sortType", sortState.sortType);
+    localStorage.setItem("sortDirection", sortState.sortDirection);
+
+    setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
+
+    return sortTags([DEFAULT_TAG, ...uniqueTagsArr]);
+  });
 
   const changeTag = (e) => {
     let tagNum;
@@ -51,54 +99,43 @@ function App() {
       tagNum = 0;
     }
 
-    setTag(tagNum);
+    dispatchSort({ type: "currentTag", value: tagNum });
     localStorage.setItem("tag", tagNum);
 
     console.log("смена тега");
 
-    if (searchText == "") {
-      setNotesData(filterNotesByTag(tagNum, sortDirection));
+    if (sortState.searchText == "") {
+      setNotesData(filterNotesByTag(tagNum, sortState.sortDirection));
     } else {
-      getSearchData(searchText, tagNum);
+      getNotesBySearchText(sortState.searchText, tagNum);
     }
   };
 
-  const changeSort = (e, direction = sortDirection) => {
+  const changeSort = (e, direction = sortState.sortDirection) => {
     let sortNum;
     try {
       sortNum = e.target.value;
       if (sortNum) {
-        localStorage.setItem("sort", sortNum);
+        localStorage.setItem("sortType", sortNum);
       } else {
         throw new Error("side generating");
       }
     } catch (error) {
-      sortNum = sort;
+      sortNum = sortState.sortType;
     }
 
-    setSort(sortNum);
+    dispatchSort({ type: "sortType", value: sortNum });
     setNotesData((prev) => {
       return sortNotes([...prev], sortNum, direction);
     });
   };
 
   const changeSortDirection = (e) => {
-    changeSort(e, sortDirection * -1);
-    localStorage.setItem("sortDirection", sortDirection * -1);
-    setSortDirection((prev) => prev * -1);
+    changeSort(e, sortState.sortDirection * -1);
+    localStorage.setItem("sortDirection", sortState.sortDirection * -1);
+
+    dispatchSort({ type: "sortDirection", value: sortState.sortDirection * -1 });
   };
-
-  const [tags, setTags] = useState(() => {
-    const uniqueTagsArr = checkUniqueTags(notesData);
-
-    localStorage.setItem("tag", tag);
-    localStorage.setItem("sort", sort);
-    localStorage.setItem("sortDirection", sortDirection);
-
-    setNotesData(filterNotesByTag(tag, sortDirection));
-
-    return sortTags([DEFAULT_TAG, ...uniqueTagsArr]);
-  });
 
   const addNewNote = (newNote) => {
     localStorage.setItem(newNote.noteId, JSON.stringify(newNote));
@@ -107,49 +144,21 @@ function App() {
 
     const sortedTags = sortTags(uniqueTagsArr);
 
-    const isTag = sortedTags.some((tagObj) => tagObj.id == tag);
-    if (tag != "0" && !isTag) {
+    const isTag = sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
+    if (sortState.currentTag != "0" && !isTag) {
       changeTag();
     } else {
-      setNotesData(filterNotesByTag(tag, sortDirection));
+      setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
     }
 
     setTags([DEFAULT_TAG, ...sortedTags]);
 
-    setIsModalOpen(false);
+    dispatchUiState({ type: "isNoteEdit", value: false });
   };
 
-  const editNote = (e) => {
-    const notee = notesData.filter((note) => note.noteId == e.currentTarget.id);
-
-    if (e.target.closest("button")) {
-      localStorage.removeItem(notee[0].noteId);
-
-      if (searchText == "") {
-        setNotesData(filterNotesByTag(tag, sortDirection));
-      } else {
-        getSearchData(searchText);
-      }
-
-      const uniqueTagsArr = checkUniqueTags(getLocalNotes());
-
-      const sortedTags = sortTags(uniqueTagsArr);
-
-      const isTag = sortedTags.some((tagObj) => tagObj.id == tag);
-
-      if (tag != "0" && !isTag) {
-        changeTag();
-        setTags([DEFAULT_TAG, ...sortedTags]);
-      }
-    } else if (!e.target.closest("label")) {
-      setNoteToEdit(...notee);
-      setIsModalOpen(true);
-    }
-  };
-
-  const getSearchData = (searchData, tagNum = tag) => {
-    setSearchText(searchData);
-    const allNotes = filterNotesByTag(tagNum, sortDirection);
+  const getNotesBySearchText = (searchData, tagNum = sortState.currentTag) => {
+    dispatchSort({ type: "searchText", value: searchData });
+    const allNotes = filterNotesByTag(tagNum, sortState.sortDirection);
 
     const searchedNotes = allNotes.filter((note) => {
       const noteText = `${note.name} ${note.text}`.toLowerCase();
@@ -160,33 +169,90 @@ function App() {
 
   const switchSearchStatus = (isSearch) => {
     if (isSearch) {
-      setIsSearchOpen(true);
+      dispatchUiState({ type: "isSearch", value: true });
     } else {
-      setIsSearchOpen(false);
-      getSearchData("");
-      setSearchText("");
+      dispatchUiState({ type: "isSearch", value: false });
+      getNotesBySearchText("");
+      dispatchSort({ type: "searchText", value: "" });
     }
+  };
+
+  const editNote = (e) => {
+    const noteToEdit = notesData.filter((note) => note.noteId == e.currentTarget.id);
+
+    if (e.target.closest("button")) {
+      localStorage.removeItem(noteToEdit[0].noteId);
+
+      if (sortState.searchText == "") {
+        setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
+      } else {
+        getNotesBySearchText(sortState.searchText);
+      }
+
+      const uniqueTagsArr = checkUniqueTags(getLocalNotes());
+
+      const sortedTags = sortTags(uniqueTagsArr);
+
+      const isTag = sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
+
+      if (sortState.currentTag != "0" && !isTag) {
+        changeTag();
+        setTags([DEFAULT_TAG, ...sortedTags]);
+      }
+    } else if (!e.target.closest("label")) {
+      setNoteToEdit(...noteToEdit);
+      dispatchUiState({ type: "isNoteEdit", value: true });
+    }
+  };
+
+  const userInfo = () => {
+    dispatchUiState({ type: "isLogIn", value: true });
   };
 
   return (
     <>
       <div className="flex flex-col gap-3 w-2xs sm:w-xl md:w-2xl">
-        {isModalOpen && <BlurMask />}
-        <h1 className="font-bold text-3xl mx-auto">To DO LIST</h1>
+        {(uiState.isNoteEdit || uiState.isSignUp || uiState.isLogIn) && <BlurMask />}
+        <div className="w-full sm:relative flex flex-col justify-center items-center mt-0.5">
+          <h1 className="font-bold text-3xl mx-auto">To DO LIST</h1>
+          <Button
+            onClick={userInfo}
+            className={[
+              "bg-primary-bg",
+              "hover:bg-secondary",
+              "border-2",
+              "border-primary",
+              "w-10",
+              "h-8",
+              "flex",
+              "justify-center",
+              "items-center",
+              "sm:w-12",
+              "sm:h-10",
+              "absolute",
+              "top-2",
+              "sm:top-0",
+              "sm:right-0",
+              "right-2",
+            ]}>
+            <img className="w-full h-full" src={isLogined ? `images/loginTrue.png` : `images/login.png`} alt="login" />
+          </Button>
+          <UserName>{userData.user ? userData?.email : "пользователь: гость"}</UserName>
+        </div>
         <div className="flex justify-between gap-8 sm:gap-4 items-end sm:grid sm:grid-cols-3">
           <div className="absolute top-2 left-2 sm:relative sm:top-0 sm:left-0 sm:justify-self-start">
             <Button
-              onClick={() => switchSearchStatus(!isSearchOpen)}
+              onClick={() => switchSearchStatus(!uiState.isSearch)}
               className={["bg-primary-bg", "hover:bg-secondary", "border-2", "border-primary", "w-10", "h-8", "rounded-[50%]", "flex", "justify-center", "items-center", "sm:w-15", "sm:h-10"]}>
               <img className="h-full" src="images/search.png" alt="search" />
             </Button>
-            {isSearchOpen && <Search onClick={() => switchSearchStatus(false)} onChangeSearchInput={getSearchData} />}
+            {uiState.isSearch && <Search onClick={() => switchSearchStatus(false)} onChangeSearchInput={getNotesBySearchText} />}
           </div>
           <div className="justify-self-start sm:justify-self-center">
             <Button
               onClick={() => {
                 setNoteToEdit("");
-                setIsModalOpen(true);
+                dispatchUiState({ type: "isNoteEdit", value: true });
               }}
               className={["bg-primary", "text-zinc-700", "hover:bg-secondary", "text-xs", "w-20", "h-6", "sm:w-30", "sm:h-10", "sm:text-base"]}>
               Добавить
@@ -194,7 +260,7 @@ function App() {
           </div>
           <div className="relative flex grow justify-between gap-2">
             <div className="flex-[0_0_49%] gap-1 text-xs sm:text-sm">
-              <OptionList optionName="sort" value={sort} options={SORTING_KEYS} onChange={changeSort}>
+              <OptionList optionName="sortType" value={sortState.sortType} options={SORTING_KEYS} onChange={changeSort}>
                 Сортировать
               </OptionList>
               <Button
@@ -219,7 +285,7 @@ function App() {
               </Button>
             </div>
             <div className="flex-[0_0_49%] text-xs sm:text-sm">
-              <OptionList optionName="tags" value={tag} options={tags} onChange={changeTag}>
+              <OptionList optionName="tags" value={sortState.currentTag} options={tags} onChange={changeTag}>
                 Тег
               </OptionList>
             </div>
@@ -230,7 +296,7 @@ function App() {
             notesData.map((note) => {
               return (
                 <Note
-                  sortNum={sort}
+                  sortNum={sortState.sortType}
                   onClick={editNote}
                   bgColor={`bg-note-${note.priority}`}
                   checked={note.checked}
@@ -243,11 +309,12 @@ function App() {
               );
             })
           ) : (
-            <div className="text-base sm:text-lg text-center">{isSearchOpen ? "Измените фильтры" : "Добавьте первую заметку"}</div>
+            <div className="text-base sm:text-lg text-center">{uiState.isSearch ? "Измените фильтры" : "Добавьте первую заметку"}</div>
           )}
         </div>
       </div>
-      {isModalOpen && <AddNoteModal noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => setIsModalOpen(false)} />}
+      {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
+      {uiState.isLogIn && <UserInfo />}
     </>
   );
 }

@@ -1,23 +1,28 @@
-import { useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { getLocalNotes } from "../utils/getLocalNotes";
 import Button from "./Button";
 import OptionList from "./OptionList";
+import { PRIORITY_OPTIONS } from "../utils/consts";
 
-function AddNoteModal(props) {
-  const editingNote = props.noteToEdit || {};
+function reducer(state, action) {
+  switch (action.type) {
+    case "name":
+      return { ...state, name: action.value };
+    case "text":
+      return { ...state, text: action.value };
+    case "tag":
+      return { ...state, tag: action.value };
+    case "priority":
+      return { ...state, priority: action.value };
+  }
+}
 
-  const [noteName, setNoteName] = useState(editingNote.name || "");
-  const [noteText, setNoteText] = useState(editingNote.text || "");
+function EditNote(props) {
+  const editingNote = props.noteToEdit || { name: "", text: "", tag: "", priority: 1 };
 
-  const [noteTag, setNoteTag] = useState(editingNote.tag || "no-tag");
-  const [notePriority, setNotePriority] = useState(editingNote.priority || 1);
+  const [noteState, dispatchNote] = useReducer(reducer, editingNote);
 
-  const optionsPriority = [
-    { id: 3, name: "Высокий" },
-    { id: 2, name: "Средний" },
-    { id: 1, name: "Обычный" },
-    { id: 0, name: "Низкий" },
-  ];
+  const [isEdited, setIsEdited] = useState(false);
 
   const localNotes = getLocalNotes();
 
@@ -46,21 +51,21 @@ function AddNoteModal(props) {
     dates.changeTimestamp = nowTimestamp;
   }
 
-  const tags = ["TAG1", "TAG2", "qweqwe"];
+  //   const tags = ["TAG1", "TAG2", "qweqwe"];
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
     const newNote = {
       noteId: noteId,
-      name: noteName,
-      text: noteText,
+      name: noteState.name,
+      text: noteState.text,
       dateCreate: dates.create,
       timestampCreate: dates.createTimestamp,
       dateChange: dates.change,
       timestampChange: dates.changeTimestamp,
-      tag: noteTag.toLowerCase().replace(/\s+/g, "_"),
-      priority: notePriority,
+      tag: noteState.tag.toLowerCase().replace(/\s+/g, "_"),
+      priority: noteState.priority,
       checked: false,
     };
     props.onSave(newNote);
@@ -72,21 +77,29 @@ function AddNoteModal(props) {
     console.log("Отмена");
   };
 
+  useEffect(() => {
+    if (editingNote.name != noteState.name || editingNote.text != noteState.text || editingNote.tag != noteState.tag || editingNote.priority != noteState.priority) {
+      setIsEdited(true);
+    } else {
+      setIsEdited(false);
+    }
+  }, [noteState]);
+
   return (
     <>
       <form action="#" onSubmit={handleSubmit}>
-        <div className="absolute top-10 left-1/2 z-20 border border-black -translate-x-1/2 p-2 rounded-md bg-primary-bg w-xs sm:w-lg md:w-xl min-h-2/3 grid grid-rows-[0.7fr_4fr_0.5fr] gap-y-1 text-xs">
+        <div className="modal grid grid-rows-[0.7fr_4fr_0.5fr] gap-y-1 text-xs">
           <div className="flex flex-col">
             <label htmlFor="name">Название:</label>
             <div className="border grow border-secondary rounded-sm">
               <input
-                className="w-full h-full px-1 focus:outline-2 focus:outline-primary rounded-sm text-xl"
+                className="input text-xl"
                 id="name"
                 name="name"
                 autoComplete="off"
                 type="text"
-                onChange={(e) => setNoteName(e.target.value)}
-                defaultValue={noteName}
+                onChange={(e) => dispatchNote({ type: "name", value: e.target.value })}
+                defaultValue={noteState.name}
               />
             </div>
           </div>
@@ -94,11 +107,11 @@ function AddNoteModal(props) {
             <label htmlFor="discription">Описание:</label>
             <div className="border grow border-secondary rounded-sm">
               <textarea
-                className="p-1 w-full h-full focus:outline-2 focus:outline-primary rounded-sm resize-none"
+                className="p-1 input resize-none"
                 id="discription"
                 name="discription"
-                defaultValue={noteText}
-                onChange={(e) => setNoteText(e.target.value)}></textarea>
+                defaultValue={noteState.text}
+                onChange={(e) => dispatchNote({ type: "text", value: e.target.value })}></textarea>
             </div>
           </div>
 
@@ -120,34 +133,43 @@ function AddNoteModal(props) {
                     type="text"
                     autoComplete="off"
                     list="tag-list"
-                    onChange={(e) => setNoteTag(e.target.value)}
-                    value={noteTag === "no-tag" ? "" : noteTag}
+                    onChange={(e) => dispatchNote({ type: "tag", value: e.target.value })}
+                    value={noteState.tag === "no-tag" ? "" : noteState.tag}
                   />
-                  <datalist id="tag-list">
+                  {/* <datalist id="tag-list">
                     {tags.map((item) => {
                       <option key={item} value={item} />;
                     })}
-                  </datalist>
+                  </datalist> */}
                 </div>
               </div>
 
               <OptionList
                 optionName={"priority"}
                 onChange={(e) => {
-                  setNotePriority(e.target.value);
+                  dispatchNote({ type: "priority", value: e.target.value });
                 }}
-                options={optionsPriority}
-                value={notePriority}>
+                options={PRIORITY_OPTIONS}
+                value={noteState.priority}>
                 Приоритет
               </OptionList>
             </div>
-            <div className="flex flex-col justify-center sm:flex-row sm:items-center justify-self-end gap-1 sm:gap-6">
-              <Button type="button" onClick={closeModal} className={["bg-primary", "hover:bg-secondary", "h-8", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
-                Отменить
-              </Button>
-              <Button type="submit" className={["bg-primary", "hover:bg-secondary", "h-8", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
-                Сохранить
-              </Button>
+
+            <div className="flex flex-col justify-center sm:flex-row sm:items-center justify-self-end gap-1 sm:gap-6 min-w-18">
+              {isEdited ? (
+                <>
+                  <Button type="button" onClick={closeModal} className={["bg-primary", "hover:bg-secondary", "h-8", "w-full", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
+                    Отменить
+                  </Button>
+                  <Button type="submit" className={["bg-primary", "hover:bg-secondary", "h-8", "w-full", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
+                    Сохранить
+                  </Button>
+                </>
+              ) : (
+                <Button type="button" onClick={closeModal} className={["bg-primary", "hover:bg-secondary", "h-8", "w-full", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
+                  Выйти
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -155,4 +177,4 @@ function AddNoteModal(props) {
     </>
   );
 }
-export default AddNoteModal;
+export default EditNote;
