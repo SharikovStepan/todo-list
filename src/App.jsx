@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import "./App.css";
 import Button from "./components/Button";
 import Note from "./components/Note";
@@ -13,6 +13,7 @@ import Search from "./components/Search";
 import { DEFAULT_TAG, SORTING_KEYS } from "./utils/consts";
 import LogIn from "./components/LogIn";
 import UserName from "./components/UserName";
+import SingUp from "./components/SingUp";
 import UserInfo from "./components/UserInfo";
 
 function uiStateReducer(state, action) {
@@ -21,6 +22,8 @@ function uiStateReducer(state, action) {
       return { ...state, isNoteEdit: action.value };
     case "isSearch":
       return { ...state, isSearch: action.value };
+    case "isUser":
+      return { ...state, isUser: action.value };
     case "isSignUp":
       return { ...state, isSignUp: action.value };
     case "isLogIn":
@@ -44,7 +47,7 @@ function sortReducer(state, action) {
 const initialUiState = {
   isNoteEdit: false,
   isSearch: false,
-  isSignUp: false,
+  isSignUp: true,
   isLogIn: false,
 };
 
@@ -206,13 +209,31 @@ function App() {
   };
 
   const userInfo = () => {
-    dispatchUiState({ type: "isLogIn", value: true });
+    dispatchUiState({ type: "isUser", value: true });
+  };
+
+  useEffect(() => {
+    if (isLogined) {
+      dispatchUiState({ type: "isLogIn", value: false });
+    }
+  }, [isLogined]);
+
+
+  const getLogIn = (email, password) => {
+    console.log("email APP", email);
+    console.log("password APP", password);
+  };
+
+  const registration = (email, password, repeatPassword) => {
+    console.log("email APP", email);
+    console.log("password APP", password);
+    console.log("repeatPassword APP", repeatPassword);
   };
 
   return (
     <>
       <div className="flex flex-col gap-3 w-2xs sm:w-xl md:w-2xl">
-        {(uiState.isNoteEdit || uiState.isSignUp || uiState.isLogIn) && <BlurMask />}
+        {(uiState.isNoteEdit || uiState.isUser) && <BlurMask />}
         <div className="w-full sm:relative flex flex-col justify-center items-center mt-0.5">
           <h1 className="font-bold text-3xl mx-auto">To DO LIST</h1>
           <Button
@@ -314,7 +335,7 @@ function App() {
         </div>
       </div>
       {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
-      {uiState.isLogIn && <UserInfo />}
+      {uiState.isUser && <div className="modal flex flex-col">{uiState.isLogIn ? <LogIn getLogIn={getLogIn} /> : uiState.isSignUp ? <SingUp registration={registration} /> : <UserInfo />}</div>}
     </>
   );
 }

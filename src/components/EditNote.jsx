@@ -87,8 +87,8 @@ function EditNote(props) {
 
   return (
     <>
-      <form action="#" onSubmit={handleSubmit}>
-        <div className="modal grid grid-rows-[0.7fr_4fr_0.5fr] gap-y-1 text-xs">
+      <div className="modal flex flex-col">
+        <form className="grid grid-rows-[0.7fr_4fr_0.5fr] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>
           <div className="flex flex-col">
             <label htmlFor="name">Название:</label>
             <div className="border grow border-secondary rounded-sm">
@@ -172,8 +172,8 @@ function EditNote(props) {
               )}
             </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </>
   );
 }
