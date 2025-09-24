@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
+import { AnimatePresence, motion, transform } from "motion/react";
 import "./App.css";
 import Button from "./components/Button";
 import Note from "./components/Note";
@@ -45,10 +46,11 @@ function sortReducer(state, action) {
 }
 
 const initialUiState = {
+  isUser: false,
   isNoteEdit: false,
   isSearch: false,
-  isSignUp: true,
-  isLogIn: false,
+  isSignUp: false,
+  isLogIn: true,
 };
 
 const initialSortState = {
@@ -59,6 +61,7 @@ const initialSortState = {
 };
 
 function App() {
+  const [isSecond, setIsSecond] = useState(false);
   const [isLogined, setIsLogined] = useState(false);
 
   const [sortState, dispatchSort] = useReducer(sortReducer, initialSortState);
@@ -104,8 +107,6 @@ function App() {
 
     dispatchSort({ type: "currentTag", value: tagNum });
     localStorage.setItem("tag", tagNum);
-
-    console.log("смена тега");
 
     if (sortState.searchText == "") {
       setNotesData(filterNotesByTag(tagNum, sortState.sortDirection));
@@ -181,30 +182,30 @@ function App() {
   };
 
   const editNote = (e) => {
-    const noteToEdit = notesData.filter((note) => note.noteId == e.currentTarget.id);
+    if (!e.target.closest("button")) {
+      const noteToEdit = notesData.find((note) => note.noteId == e.currentTarget.id);
+      console.log("noteToEditnoteToEdit", noteToEdit);
 
-    if (e.target.closest("button")) {
-      localStorage.removeItem(noteToEdit[0].noteId);
-
-      if (sortState.searchText == "") {
-        setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
-      } else {
-        getNotesBySearchText(sortState.searchText);
-      }
-
-      const uniqueTagsArr = checkUniqueTags(getLocalNotes());
-
-      const sortedTags = sortTags(uniqueTagsArr);
-
-      const isTag = sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
-
-      if (sortState.currentTag != "0" && !isTag) {
-        changeTag();
-        setTags([DEFAULT_TAG, ...sortedTags]);
-      }
-    } else if (!e.target.closest("label")) {
-      setNoteToEdit(...noteToEdit);
+      setNoteToEdit(noteToEdit);
       dispatchUiState({ type: "isNoteEdit", value: true });
+    }
+  };
+
+  const deleteNote = (id) => {
+    localStorage.removeItem(id);
+
+    if (sortState.searchText == "") {
+      setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
+    } else {
+      getNotesBySearchText(sortState.searchText);
+    }
+
+    const uniqueTagsArr = checkUniqueTags(getLocalNotes());
+    const sortedTags = sortTags(uniqueTagsArr);
+    const isTag = sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
+    if (sortState.currentTag != "0" && !isTag) {
+      changeTag();
+      setTags([DEFAULT_TAG, ...sortedTags]);
     }
   };
 
@@ -218,7 +219,6 @@ function App() {
     }
   }, [isLogined]);
 
-
   const getLogIn = (email, password) => {
     console.log("email APP", email);
     console.log("password APP", password);
@@ -230,32 +230,19 @@ function App() {
     console.log("repeatPassword APP", repeatPassword);
   };
 
+  const closeModal = () => {
+    dispatchUiState({ type: "isUser", value: false });
+  };
+
   return (
     <>
       <div className="flex flex-col gap-3 w-2xs sm:w-xl md:w-2xl">
-        {(uiState.isNoteEdit || uiState.isUser) && <BlurMask />}
+        <AnimatePresence>{(uiState.isNoteEdit || uiState.isUser) && <BlurMask />}</AnimatePresence>
         <div className="w-full sm:relative flex flex-col justify-center items-center mt-0.5">
           <h1 className="font-bold text-3xl mx-auto">To DO LIST</h1>
           <Button
             onClick={userInfo}
-            className={[
-              "bg-primary-bg",
-              "hover:bg-secondary",
-              "border-2",
-              "border-primary",
-              "w-10",
-              "h-8",
-              "flex",
-              "justify-center",
-              "items-center",
-              "sm:w-12",
-              "sm:h-10",
-              "absolute",
-              "top-2",
-              "sm:top-0",
-              "sm:right-0",
-              "right-2",
-            ]}>
+            className={`bg-primary-bg hover-button border-2 border-primary w-10 h-8 flex justify-center items-center sm:w-12 sm:h-10 absolute top-2 sm:top-0 sm:right-0 right-2`}>
             <img className="w-full h-full" src={isLogined ? `images/loginTrue.png` : `images/login.png`} alt="login" />
           </Button>
           <UserName>{userData.user ? userData?.email : "пользователь: гость"}</UserName>
@@ -264,10 +251,10 @@ function App() {
           <div className="absolute top-2 left-2 sm:relative sm:top-0 sm:left-0 sm:justify-self-start">
             <Button
               onClick={() => switchSearchStatus(!uiState.isSearch)}
-              className={["bg-primary-bg", "hover:bg-secondary", "border-2", "border-primary", "w-10", "h-8", "rounded-[50%]", "flex", "justify-center", "items-center", "sm:w-15", "sm:h-10"]}>
+              className={`bg-primary-bg hover-button border-2 border-primary w-10 h-8 rounded-[50%] flex justify-center items-center sm:w-15 sm:h-10`}>
               <img className="h-full" src="images/search.png" alt="search" />
             </Button>
-            {uiState.isSearch && <Search onClick={() => switchSearchStatus(false)} onChangeSearchInput={getNotesBySearchText} />}
+            <AnimatePresence>{uiState.isSearch && <Search key="search" onClick={() => switchSearchStatus(false)} onChangeSearchInput={getNotesBySearchText} />}</AnimatePresence>
           </div>
           <div className="justify-self-start sm:justify-self-center">
             <Button
@@ -275,7 +262,7 @@ function App() {
                 setNoteToEdit("");
                 dispatchUiState({ type: "isNoteEdit", value: true });
               }}
-              className={["bg-primary", "text-zinc-700", "hover:bg-secondary", "text-xs", "w-20", "h-6", "sm:w-30", "sm:h-10", "sm:text-base"]}>
+              className={`bg-primary text-zinc-700 hover-button text-xs w-20 h-6 sm:w-30 sm:h-10 sm:text-base`}>
               Добавить
             </Button>
           </div>
@@ -286,22 +273,7 @@ function App() {
               </OptionList>
               <Button
                 onClick={changeSortDirection}
-                className={[
-                  "flex",
-                  "justify-center",
-                  "bottom-0",
-                  "left-0",
-                  "absolute",
-                  "bg-primary-bg",
-                  "sm:h-5",
-                  "hover:bg-secondary",
-                  "border",
-                  "border-primary",
-                  "w-5",
-                  "h-4.5",
-                  "text-xs",
-                  "-translate-x-[calc(100%+4px)]",
-                ]}>
+                className={`flex justify-center bottom-0 left-0 absolute bg-primary-bg sm:h-5 hover-button border border-primary w-5 h-4.5 text-xs -translate-x-[calc(100%+4px)]`}>
                 <img className="h-full" src="images/sorting.png" alt="sorting" />
               </Button>
             </div>
@@ -317,6 +289,7 @@ function App() {
             notesData.map((note) => {
               return (
                 <Note
+                  onDelete={deleteNote}
                   sortNum={sortState.sortType}
                   onClick={editNote}
                   bgColor={`bg-note-${note.priority}`}
@@ -325,7 +298,7 @@ function App() {
                   dateCreate={note.dateCreate}
                   key={note.noteId}
                   id={note.noteId}>
-                  {note.name}{" "}
+                  {note.name}
                 </Note>
               );
             })
@@ -334,8 +307,41 @@ function App() {
           )}
         </div>
       </div>
-      {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
-      {uiState.isUser && <div className="modal flex flex-col">{uiState.isLogIn ? <LogIn getLogIn={getLogIn} /> : uiState.isSignUp ? <SingUp registration={registration} /> : <UserInfo />}</div>}
+      <AnimatePresence>
+        {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
+        {uiState.isUser && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 0.5, type: "spring", damping: 10 } }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            className="modal flex flex-col will-change-transform">
+            {uiState.isLogIn ? <LogIn getLogIn={getLogIn} onClose={closeModal} /> : uiState.isSignUp ? <SingUp registration={registration} onClose={closeModal} /> : <UserInfo />}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex justify-end border-2 gap-20 border-amber-600 px-2">
+        <AnimatePresence>
+          <motion.button key="button-1" layout transition={{ duration: 0.3 }} className={`border-2 border-blue-900 w-auto h-8 cursor-pointer p-2 ${isSecond ? "" : ""}`}>
+            {isSecond ? "КНОПКА 1КНОПКА 1" : "КНОПКА 1"}
+          </motion.button>
+          {isSecond && (
+            <motion.button
+              layout
+              key="button-2"
+              //   initial={'initial'}
+              exit={{ width: 0, padding: 0 }}
+              animate={{ width: "auto" }}
+              transition={{ duration: 0.3 }}
+              className="border-2 border-blue-900 w-auto h-8 cursor-pointer px-2 overflow-hidden">
+              КНОПКА 2
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+      <motion.button onClick={() => setIsSecond((prev) => !prev)} className="border-2 border-blue-900 w-auto h-8 cursor-pointer p-2">
+        ТОГЛ
+      </motion.button>
     </>
   );
 }

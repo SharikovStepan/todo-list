@@ -15,12 +15,16 @@ function Note(props) {
     setIsThrough(e.target.checked);
   };
 
+  const deleteNote = () => {
+    props.onDelete(props.id);
+  };
+
   return (
     <>
       <div
         id={props.id}
         onClick={props.onClick}
-        className={`py-1 px-1 sm:px-2 sm:py-2 cursor-pointer transition-all will-change-contents border border-transparent hover:border-primary hover:transform-flat hover:scale-[1.01] rounded-md flex justify-between items-center gap-2 ${props.bgColor} `}>
+        className={`py-1 px-1 sm:px-2 sm:py-2 cursor-pointer transition-all will-change-contents border border-transparent hover-note rounded-md flex justify-between items-center gap-2 ${props.bgColor} `}>
         <Checkbox id={`${props.id}-checkbox`} checked={isThrough} onChange={handleCheck} />
         <div className=" w-full flex flex-col">
           <h2 className={`text-xs font-bold sm:text-lg sm:font-medium ${isThrough ? "line-through" : ""}`}>{props.children}</h2>
@@ -31,8 +35,8 @@ function Note(props) {
           )}
         </div>
 
-        <div className="flex gap-1">
-          <Button className={["bg-secondary-bg", "hover:bg-secondary", "w-8", "h-8", "p-2"]}>
+        <div onClick={deleteNote} className="flex justify-center items-center">
+          <Button isLayout={false} className={`bg-secondary-bg hover-button w-8 h-8 p-1`}>
             <img className="w-full h-full" src="images/trash.png" alt="trash" />
           </Button>
         </div>

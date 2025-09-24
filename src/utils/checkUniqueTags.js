@@ -1,15 +1,13 @@
 export const checkUniqueTags = (notes) => {
-  const initialTagsArr = notes
-    .filter((note) => note.tag !== "no-tag")
-    .map((note) =>note.tag);
-
+  const initialTagsArr = notes.filter((note) => note.tag !== "no-tag").map((note) => note.tag);
   const uniqueTags = new Map();
 
-  initialTagsArr.forEach((tag) => {
+  initialTagsArr.forEach((tag, index) => {
     if (tag !== "no-tag" && !uniqueTags.has(tag)) {
       uniqueTags.set(tag, {
+        //   id: index + 1,
         id: tag,
-        name: tag
+        name: tag,
       });
     }
   });

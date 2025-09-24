@@ -3,6 +3,7 @@ import { getLocalNotes } from "../utils/getLocalNotes";
 import Button from "./Button";
 import OptionList from "./OptionList";
 import { PRIORITY_OPTIONS } from "../utils/consts";
+import { motion, AnimatePresence } from "motion/react";
 
 function reducer(state, action) {
   switch (action.type) {
@@ -11,14 +12,14 @@ function reducer(state, action) {
     case "text":
       return { ...state, text: action.value };
     case "tag":
-      return { ...state, tag: action.value };
+      return { ...state, tag: action.value != "" ? action.value : "no-tag" };
     case "priority":
       return { ...state, priority: action.value };
   }
 }
 
 function EditNote(props) {
-  const editingNote = props.noteToEdit || { name: "", text: "", tag: "", priority: 1 };
+  const editingNote = props.noteToEdit || { name: "", text: "", tag: "no-tag", priority: 1 };
 
   const [noteState, dispatchNote] = useReducer(reducer, editingNote);
 
@@ -77,6 +78,8 @@ function EditNote(props) {
     console.log("Отмена");
   };
 
+  console.log("editingNote", editingNote);
+
   useEffect(() => {
     if (editingNote.name != noteState.name || editingNote.text != noteState.text || editingNote.tag != noteState.tag || editingNote.priority != noteState.priority) {
       setIsEdited(true);
@@ -87,8 +90,12 @@ function EditNote(props) {
 
   return (
     <>
-      <div className="modal flex flex-col">
-        <form className="grid grid-rows-[0.7fr_4fr_0.5fr] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1, transition: { duration: 0.5, type: "spring", damping: 10 } }}
+        exit={{ opacity: 0, scale: 0.97 }}
+        className="modal flex flex-col">
+        <form className="grid grid-rows-[auto_1fr_auto] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>
           <div className="flex flex-col">
             <label htmlFor="name">Название:</label>
             <div className="border grow border-secondary rounded-sm">
@@ -115,7 +122,7 @@ function EditNote(props) {
             </div>
           </div>
 
-          <div className={`flex flex-col ${editingNote.tag ? "block" : "hidden"}`}>
+          <div className={`flex flex-col ${editingNote.timestampCreate ? "block" : "hidden"}`}>
             <p className="text-end">{`создана: ${editingNote.dateCreate}`}</p>
             <p className="text-end">{`изменена: ${editingNote.dateChange}`}</p>
           </div>
@@ -155,25 +162,37 @@ function EditNote(props) {
               </OptionList>
             </div>
 
-            <div className="flex flex-col justify-center sm:flex-row sm:items-center justify-self-end gap-1 sm:gap-6 min-w-18">
-              {isEdited ? (
-                <>
-                  <Button type="button" onClick={closeModal} className={["bg-primary", "hover:bg-secondary", "h-8", "w-full", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
-                    Отменить
-                  </Button>
-                  <Button type="submit" className={["bg-primary", "hover:bg-secondary", "h-8", "w-full", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
+            <div className="flex flex-col justify-end sm:flex-row sm:items-center justify-self-end min-w-18">
+              <AnimatePresence>
+                <Button
+                  isLayout={true}
+                  key="back-button"
+                  motionKey="back-button"
+                  type="button"
+                  onClick={closeModal}
+                  width={80}
+                  className={`bg-primary hover-button h-8 w-full sm:w-20 text-xs text-zinc-800 will-change-transform`}>
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} key={isEdited ? "cancel" : "back"}>
+                    {isEdited ? "Отменить" : "Выйти"}
+                  </motion.span>
+                </Button>
+                {isEdited && (
+                  <Button
+                    toRight={true}
+                    isInitial={true}
+                    key="save-button"
+                    type="submit"
+                    motionKey="save-button"
+                    width={80}
+                    className={`bg-primary hover-button h-8 w-full sm:w-20 text-xs text-zinc-800 will-change-transform`}>
                     Сохранить
                   </Button>
-                </>
-              ) : (
-                <Button type="button" onClick={closeModal} className={["bg-primary", "hover:bg-secondary", "h-8", "w-full", "sm:w-20", "text-xs", "px-1", " text-zinc-800"]}>
-                  Выйти
-                </Button>
-              )}
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </form>
-      </div>
+      </motion.div>
     </>
   );
 }
