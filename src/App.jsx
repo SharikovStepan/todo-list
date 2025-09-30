@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-import { AnimatePresence, motion, transform } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import "./App.css";
 import Button from "./components/Button";
 import Note from "./components/Note";
@@ -182,7 +182,7 @@ function App() {
   };
 
   const editNote = (e) => {
-    if (!e.target.closest("button")) {
+    if (!e.target.closest("button") && !e.target.closest("label")) {
       const noteToEdit = notesData.find((note) => note.noteId == e.currentTarget.id);
       console.log("noteToEditnoteToEdit", noteToEdit);
 
@@ -284,34 +284,47 @@ function App() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl py-2 px-2 sm:py-5 sm:px-5 bg-secondary-bg flex flex-col gap-2">
-          {notesData.length > 0 ? (
-            notesData.map((note) => {
-              return (
-                <Note
-                  onDelete={deleteNote}
-                  sortNum={sortState.sortType}
-                  onClick={editNote}
-                  bgColor={`bg-note-${note.priority}`}
-                  checked={note.checked}
-                  dateChange={note.dateChange}
-                  dateCreate={note.dateCreate}
-                  key={note.noteId}
-                  id={note.noteId}>
-                  {note.name}
-                </Note>
-              );
-            })
-          ) : (
-            <div className="text-base sm:text-lg text-center">{uiState.isSearch ? "Измените фильтры" : "Добавьте первую заметку"}</div>
-          )}
-        </div>
+        <LayoutGroup>
+          <motion.div layoutId="container" className="rounded-2xl py-2 px-2 sm:py-5 sm:px-5 bg-secondary-bg flex flex-col gap-2 min-h-16">
+            <AnimatePresence>
+              {notesData.length > 0 ? (
+                notesData.map((note) => {
+                  return (
+                    <motion.div
+                      layout
+                      key={`container_${note.noteId}`}
+                      initial={{ x: 100, opacity: 0, border: "1px solid var(--color-primary)" }}
+                      animate={{ x: 0, opacity: 1, border: "1px solid transparent" }}
+                      exit={{ x: -100, opacity: 0, border: "1px solid var(--color-primary)" }}>
+                      <Note
+                        onDelete={deleteNote}
+                        sortNum={sortState.sortType}
+                        onClick={editNote}
+                        bgColor={`bg-note-${note.priority}`}
+                        checked={note.checked}
+                        dateChange={note.dateChange}
+                        dateCreate={note.dateCreate}
+                        key={note.noteId}
+                        id={note.noteId}>
+                        {note.name}
+                      </Note>
+                    </motion.div>
+                  );
+                })
+              ) : (
+                <motion.div key="no-notes-div" className="text-base sm:text-lg text-center absolute">
+                  {uiState.isSearch ? "Измените фильтры" : "Добавьте первую заметку"}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </LayoutGroup>
       </div>
       <AnimatePresence>
         {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
         {uiState.isUser && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
+            initial={{ opacity: 1, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1, transition: { duration: 0.5, type: "spring", damping: 10 } }}
             exit={{ opacity: 0, scale: 0.97 }}
             className="modal flex flex-col will-change-transform">
@@ -320,7 +333,7 @@ function App() {
         )}
       </AnimatePresence>
 
-      <div className="flex justify-end border-2 gap-20 border-amber-600 px-2">
+      {/* <div className="flex justify-end border-2 gap-20 border-amber-600 px-2">
         <AnimatePresence>
           <motion.button key="button-1" layout transition={{ duration: 0.3 }} className={`border-2 border-blue-900 w-auto h-8 cursor-pointer p-2 ${isSecond ? "" : ""}`}>
             {isSecond ? "КНОПКА 1КНОПКА 1" : "КНОПКА 1"}
@@ -341,7 +354,7 @@ function App() {
       </div>
       <motion.button onClick={() => setIsSecond((prev) => !prev)} className="border-2 border-blue-900 w-auto h-8 cursor-pointer p-2">
         ТОГЛ
-      </motion.button>
+      </motion.button> */}
     </>
   );
 }

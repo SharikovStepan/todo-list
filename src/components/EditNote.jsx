@@ -4,6 +4,8 @@ import Button from "./Button";
 import OptionList from "./OptionList";
 import { PRIORITY_OPTIONS } from "../utils/consts";
 import { motion, AnimatePresence } from "motion/react";
+import { div } from "motion/react-client";
+import { animate } from "motion";
 
 function reducer(state, action) {
   switch (action.type) {
@@ -91,9 +93,9 @@ function EditNote(props) {
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1, transition: { duration: 0.5, type: "spring", damping: 10 } }}
-        exit={{ opacity: 0, scale: 0.97 }}
+        initial={{ opacity: 0, scale: 0.90 }}
+        animate={{ opacity: 1, scale: 1, transition: { duration: 0.15, type: "spring", damping: 10, stiffness: 70, bounce: 0.45 } }}
+        exit={{ opacity: 0, scale: 0.90 }}
         className="modal flex flex-col">
         <form className="grid grid-rows-[auto_1fr_auto] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>
           <div className="flex flex-col">
@@ -164,29 +166,19 @@ function EditNote(props) {
 
             <div className="flex flex-col justify-end sm:flex-row sm:items-center justify-self-end min-w-18">
               <AnimatePresence>
-                <Button
-                  isLayout={true}
-                  key="back-button"
-                  motionKey="back-button"
-                  type="button"
-                  onClick={closeModal}
-                  width={80}
-                  className={`bg-primary hover-button h-8 w-full sm:w-20 text-xs text-zinc-800 will-change-transform`}>
-                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} key={isEdited ? "cancel" : "back"}>
-                    {isEdited ? "Отменить" : "Выйти"}
-                  </motion.span>
-                </Button>
-                {isEdited && (
-                  <Button
-                    toRight={true}
-                    isInitial={true}
-                    key="save-button"
-                    type="submit"
-                    motionKey="save-button"
-                    width={80}
-                    className={`bg-primary hover-button h-8 w-full sm:w-20 text-xs text-zinc-800 will-change-transform`}>
-                    Сохранить
+                <div key="back-button" className="flex justify-center items-center">
+                  <Button type="button" onClick={closeModal} className={`bg-primary w-full sm:w-20 text-xs text-zinc-800`}>
+                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} key={isEdited ? "cancel" : "back"}>
+                      {isEdited ? "Отменить" : "Выйти"}
+                    </motion.span>
                   </Button>
+                </div>
+                {isEdited && (
+                  <motion.div className="flex justify-center items-center" key="save-button" initial={{ width: 0 }} animate={{ width: "100%", marginLeft: 10 }} exit={{ width: 0, marginLeft: 0 }}>
+                    <Button type="submit" className={`bg-primary w-full sm:w-20 text-xs text-zinc-800`}>
+                      Сохранить
+                    </Button>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>

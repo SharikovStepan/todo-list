@@ -1,6 +1,6 @@
 import Checkbox from "./Checkbox";
 import Button from "./Button";
-
+import { motion } from "motion/react";
 import { useState } from "react";
 
 function Note(props) {
@@ -18,13 +18,37 @@ function Note(props) {
   const deleteNote = () => {
     props.onDelete(props.id);
   };
+  //  const colorPrimary = "var(--color-primary)";
+  const colorPrimary = "#f00";
+
+  const variants = {
+    tap: {
+      scale: 1.01,
+      border: `1px solid var(--color-primary)`,
+      transition: { duration: 0.1, type: "tween", ease: "linear" },
+    },
+    hover: {
+      scale: 1.01,
+      border: `1px solid var(--color-primary)`,
+      transition: { duration: 0.15, type: "tween", ease: "linear" },
+    },
+    default: {
+      scale: 1,
+      border: `1px solid transparent`,
+      transition: { duration: 0.3, type: "tween", ease: "linear" },
+    },
+  };
 
   return (
     <>
-      <div
+      <motion.div
+        variants={variants}
+        animate="default"
+        whileHover="hover"
+        whileTap="tap"
         id={props.id}
         onClick={props.onClick}
-        className={`py-1 px-1 sm:px-2 sm:py-2 cursor-pointer transition-all will-change-contents border border-transparent hover-note rounded-md flex justify-between items-center gap-2 ${props.bgColor} `}>
+        className={`py-1 px-1 sm:px-2 sm:py-2 cursor-pointer will-change-transform border hover-note rounded-md flex justify-between items-center gap-2 ${props.bgColor} `}>
         <Checkbox id={`${props.id}-checkbox`} checked={isThrough} onChange={handleCheck} />
         <div className=" w-full flex flex-col">
           <h2 className={`text-xs font-bold sm:text-lg sm:font-medium ${isThrough ? "line-through" : ""}`}>{props.children}</h2>
@@ -40,7 +64,7 @@ function Note(props) {
             <img className="w-full h-full" src="images/trash.png" alt="trash" />
           </Button>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

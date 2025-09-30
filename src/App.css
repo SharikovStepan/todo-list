@@ -4,7 +4,7 @@
   --color-primary-bg: #d7ddfb;
   --color-secondary-bg: #babdff;
   --color-blur: #babdffa4;
-  --color-primary: #5c3a98b3;
+  --color-primary: rgba(92, 58, 152, 0.702);
   --color-secondary: #5c3a9880;
   --color-note-3: #fbd7e4;
   --color-note-2: #e8d7fb;
@@ -66,11 +66,6 @@
     box-shadow: 0px 0px 2px #5c3a98;
   }
   .hover-note {
-	will-change: transform;
-    @apply hover:border-primary hover:transform-flat hover:scale-[1.01];
-  }
-  .hover-button {
-    will-change: transform;
-    @apply hover:bg-secondary;
+    /* @apply hover:border-primary hover:transform-flat hover:scale-[1.01]; */
   }
 }
