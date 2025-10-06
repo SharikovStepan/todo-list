@@ -3,7 +3,7 @@ import { getLocalNotes } from "../utils/getLocalNotes";
 import Button from "./Button";
 import OptionList from "./OptionList";
 import { PRIORITY_OPTIONS } from "../utils/consts";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { div } from "motion/react-client";
 import { animate } from "motion";
 
@@ -22,6 +22,8 @@ function reducer(state, action) {
 
 function EditNote(props) {
   const editingNote = props.noteToEdit || { name: "", text: "", tag: "no-tag", priority: 1 };
+
+  const isDesktop = window.matchMedia("(min-width: 640px)").matches;
 
   const [noteState, dispatchNote] = useReducer(reducer, editingNote);
 
@@ -80,7 +82,7 @@ function EditNote(props) {
     console.log("Отмена");
   };
 
-  console.log("editingNote", editingNote);
+  console.log("editingNote1111", noteState);
 
   useEffect(() => {
     if (editingNote.name != noteState.name || editingNote.text != noteState.text || editingNote.tag != noteState.tag || editingNote.priority != noteState.priority) {
@@ -90,37 +92,29 @@ function EditNote(props) {
     }
   }, [noteState]);
 
+  const buttonVariants = {
+    hide: { width: isDesktop ? "0" : "auto", height: isDesktop ? "auto" : "0", marginLeft: 0, marginTop: 0 },
+    animate: { width: "auto", height: "auto", marginLeft: isDesktop ? "0.35rem" : 0, marginTop: isDesktop ? 0 : "0.35rem" },
+  };
+
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, scale: 0.90 }}
+        initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1, transition: { duration: 0.15, type: "spring", damping: 10, stiffness: 70, bounce: 0.45 } }}
-        exit={{ opacity: 0, scale: 0.90 }}
+        exit={{ opacity: 0, scale: 0.9 }}
         className="modal flex flex-col">
         <form className="grid grid-rows-[auto_1fr_auto] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>
           <div className="flex flex-col">
             <label htmlFor="name">Название:</label>
             <div className="border grow border-secondary rounded-sm">
-              <input
-                className="input text-xl"
-                id="name"
-                name="name"
-                autoComplete="off"
-                type="text"
-                onChange={(e) => dispatchNote({ type: "name", value: e.target.value })}
-                defaultValue={noteState.name}
-              />
+              <input className="input text-xl" id="name" name="name" autoComplete="off" type="text" onChange={(e) => dispatchNote({ type: "name", value: e.target.value })} value={noteState.name} />
             </div>
           </div>
           <div className="flex flex-col">
             <label htmlFor="discription">Описание:</label>
             <div className="border grow border-secondary rounded-sm">
-              <textarea
-                className="p-1 input resize-none"
-                id="discription"
-                name="discription"
-                defaultValue={noteState.text}
-                onChange={(e) => dispatchNote({ type: "text", value: e.target.value })}></textarea>
+              <textarea className="p-1 input resize-none" id="discription" name="discription" value={noteState.text} onChange={(e) => dispatchNote({ type: "text", value: e.target.value })}></textarea>
             </div>
           </div>
 
@@ -163,18 +157,28 @@ function EditNote(props) {
                 Приоритет
               </OptionList>
             </div>
-
-            <div className="flex flex-col justify-end sm:flex-row sm:items-center justify-self-end min-w-18">
-              <AnimatePresence>
-                <div key="back-button" className="flex justify-center items-center">
-                  <Button type="button" onClick={closeModal} className={`bg-primary w-full sm:w-20 text-xs text-zinc-800`}>
-                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} key={isEdited ? "cancel" : "back"}>
+            {/* transition={{ duration: 0.5 }} */}
+            {/* <LayoutGroup> */}
+            <div className="flex flex-col justify-end sm:flex-row sm:items-center justify-self-end min-w-20">
+              <div key="back-button" className="flex justify-center items-center">
+                <Button type="button" onClick={closeModal} className={`bg-primary w-full sm:w-20 text-xs text-zinc-800`}>
+                  <AnimatePresence mode="wait">
+                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} key={isEdited ? "cancel" : "back"}>
                       {isEdited ? "Отменить" : "Выйти"}
                     </motion.span>
-                  </Button>
-                </div>
+                  </AnimatePresence>
+                </Button>
+              </div>
+              <AnimatePresence>
                 {isEdited && (
-                  <motion.div className="flex justify-center items-center" key="save-button" initial={{ width: 0 }} animate={{ width: "100%", marginLeft: 10 }} exit={{ width: 0, marginLeft: 0 }}>
+                  <motion.div
+                    className="flex flex-col sm:flex-row justify-center items-center will-change-transform"
+                    key="save-button"
+                    initial="hide"
+                    animate="animate"
+                    exit="hide"
+                    variants={buttonVariants}
+                    transition={{ duration: 0.2 }}>
                     <Button type="submit" className={`bg-primary w-full sm:w-20 text-xs text-zinc-800`}>
                       Сохранить
                     </Button>
@@ -182,6 +186,7 @@ function EditNote(props) {
                 )}
               </AnimatePresence>
             </div>
+            {/* </LayoutGroup> */}
           </div>
         </form>
       </motion.div>

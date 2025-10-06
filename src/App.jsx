@@ -60,8 +60,25 @@ const initialSortState = {
   searchText: "",
 };
 
+const initialNotes = {
+  visibleNotes: getLocalNotes(initialSortState.sortType, initialSortState.sortDirection),
+  allNotes: getLocalNotes(initialSortState.sortType, initialSortState.sortDirection),
+  deletingNoteIds: [],
+  newNoteIdes: [],
+};
+
+function notesReducer(state, action) {
+  switch (action.type) {
+    case "allNotes":
+      return { ...state, allNotes: action.value };
+    case "visibleNotes":
+      return { ...state, visibleNotes: action.value };
+    case "deletingNoteIds":
+      return { ...state, deletingNoteIds: action.value };
+  }
+}
+
 function App() {
-  const [isSecond, setIsSecond] = useState(false);
   const [isLogined, setIsLogined] = useState(false);
 
   const [sortState, dispatchSort] = useReducer(sortReducer, initialSortState);
@@ -70,29 +87,34 @@ function App() {
 
   const [userData, setUserData] = useState({});
 
-  const [notesData, setNotesData] = useState(getLocalNotes(sortState.sortType));
+  //   const [notesData, setNotesData] = useState(getLocalNotes(sortState.sortType));
+  const [notesData, dispatchNotes] = useReducer(notesReducer, initialNotes);
 
   const [noteToEdit, setNoteToEdit] = useState("");
 
-  const filterNotesByTag = (tagNum, direction) => {
-    if (tagNum == "0" || !tagNum) return getLocalNotes(sortState.sortType, direction);
+  const filterNotes = () => {
+    const sortedAllNotes = sortNotes(notesData.allNotes, sortState.sortType, sortState.sortDirection);
 
-    return getLocalNotes(sortState.sortType, direction).filter((note) => note.tag === tagNum);
+    const tagFilteredNotes = sortState.currentTag == "0" || !sortState.currentTag ? sortedAllNotes : sortedAllNotes.filter((note) => note.tag === sortState.currentTag);
+
+    const searchFiltered = uiState.isSearch
+      ? tagFilteredNotes.filter((note) => {
+          const noteText = `${note.name} ${note.text}`.toLowerCase();
+          return noteText.includes(sortState.searchText.toLowerCase());
+        })
+      : tagFilteredNotes;
+
+    const deleteFiltered = notesData.deletingNoteIds.length ? searchFiltered.filter((note) => !notesData.deletingNoteIds.includes(note.noteId)) : searchFiltered;
+
+    return deleteFiltered;
   };
 
   const [tags, setTags] = useState(() => {
-    const uniqueTagsArr = checkUniqueTags(notesData);
-
-    localStorage.setItem("tag", sortState.currentTag);
-    localStorage.setItem("sortType", sortState.sortType);
-    localStorage.setItem("sortDirection", sortState.sortDirection);
-
-    setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
-
+    const uniqueTagsArr = checkUniqueTags(notesData.allNotes);
     return sortTags([DEFAULT_TAG, ...uniqueTagsArr]);
   });
 
-  const changeTag = (e) => {
+  const switchTag = (e) => {
     let tagNum;
     try {
       tagNum = e.target.value;
@@ -106,16 +128,19 @@ function App() {
     }
 
     dispatchSort({ type: "currentTag", value: tagNum });
+
     localStorage.setItem("tag", tagNum);
 
     if (sortState.searchText == "") {
-      setNotesData(filterNotesByTag(tagNum, sortState.sortDirection));
+      // const sortedNotes = sortNotes(filterNotesByTag(tagNum), sortState.sortNum, sortState.sortDirection);
+      // dispatchNotes({ type: "visibleNotes", value: sortedNotes });
+      // setNotesData(filterNotesByTag(tagNum, sortState.sortDirection));
     } else {
-      getNotesBySearchText(sortState.searchText, tagNum);
+      // getNotesBySearchText(sortState.searchText, tagNum);
     }
   };
 
-  const changeSort = (e, direction = sortState.sortDirection) => {
+  const switchSort = (e) => {
     let sortNum;
     try {
       sortNum = e.target.value;
@@ -129,46 +154,55 @@ function App() {
     }
 
     dispatchSort({ type: "sortType", value: sortNum });
-    setNotesData((prev) => {
-      return sortNotes([...prev], sortNum, direction);
-    });
+
+    //  dispatchNotes({ type: "visibleNotes", value: sortNotes([...notesData.visibleNotes], sortNum, direction) });
+
+    //  setNotesData((prev) => {
+    //    return sortNotes([...prev], sortNum, direction);
+    //  });
   };
 
-  const changeSortDirection = (e) => {
-    changeSort(e, sortState.sortDirection * -1);
+  const switchSortDirection = () => {
+    //  switchSort(e, sortState.sortDirection * -1);
     localStorage.setItem("sortDirection", sortState.sortDirection * -1);
 
     dispatchSort({ type: "sortDirection", value: sortState.sortDirection * -1 });
   };
 
-  const addNewNote = (newNote) => {
-    localStorage.setItem(newNote.noteId, JSON.stringify(newNote));
+  const saveNote = (noteData) => {
+    console.log("notesData.allNotesnotesData.allNotes", notesData.allNotes);
 
-    const uniqueTagsArr = checkUniqueTags(getLocalNotes());
+    const allNotesId = notesData.allNotes.map((note) => note.noteId);
+    console.log("allNotesId", allNotesId);
+    console.log("allNotesId.includes(noteData.noteId)", allNotesId.includes(noteData.noteId));
 
-    const sortedTags = sortTags(uniqueTagsArr);
-
-    const isTag = sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
-    if (sortState.currentTag != "0" && !isTag) {
-      changeTag();
+    if (!allNotesId.includes(noteData.noteId)) {
+      dispatchNotes({ type: "allNotes", value: [...notesData.allNotes, noteData] });
+      localStorage.setItem(noteData.noteId, JSON.stringify(noteData));
     } else {
-      setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
+      const currentNote = notesData.allNotes.find((note) => note.noteId == noteData.noteId);
+      const allNotesWithoutCurrent = notesData.allNotes.filter((note) => note.noteId != noteData.noteId);
+      dispatchNotes({ type: "allNotes", value: [...allNotesWithoutCurrent, currentNote] });
+      localStorage.setItem(noteData.noteId, JSON.stringify(noteData));
     }
+    //  const uniqueTagsArr = checkUniqueTags(notesData.allNotes);
 
-    setTags([DEFAULT_TAG, ...sortedTags]);
+    //  const sortedTags = sortTags(uniqueTagsArr);
+
+    //  const isCurrentTagDelete = !sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
+    //  if (sortState.currentTag != "0" && isCurrentTagDelete) {
+    //    switchTag();
+    //  }
+    //  setTags([DEFAULT_TAG, ...sortedTags]);
+
+    checkTags();
+    setTimeout(() => {
+		console.log('timerrrr');
+		
+      dispatchNotes({ type: "visibleNotes", value: filterNotes() });
+    }, 2000);
 
     dispatchUiState({ type: "isNoteEdit", value: false });
-  };
-
-  const getNotesBySearchText = (searchData, tagNum = sortState.currentTag) => {
-    dispatchSort({ type: "searchText", value: searchData });
-    const allNotes = filterNotesByTag(tagNum, sortState.sortDirection);
-
-    const searchedNotes = allNotes.filter((note) => {
-      const noteText = `${note.name} ${note.text}`.toLowerCase();
-      return noteText.includes(searchData.toLowerCase());
-    });
-    setNotesData(searchedNotes);
   };
 
   const switchSearchStatus = (isSearch) => {
@@ -176,48 +210,101 @@ function App() {
       dispatchUiState({ type: "isSearch", value: true });
     } else {
       dispatchUiState({ type: "isSearch", value: false });
-      getNotesBySearchText("");
-      dispatchSort({ type: "searchText", value: "" });
+      // dispatchSort({ type: "searchText", value: "" });
     }
   };
 
   const editNote = (e) => {
     if (!e.target.closest("button") && !e.target.closest("label")) {
-      const noteToEdit = notesData.find((note) => note.noteId == e.currentTarget.id);
-      console.log("noteToEditnoteToEdit", noteToEdit);
+      const noteToEdit = notesData.visibleNotes.find((note) => note.noteId == e.currentTarget.id);
 
       setNoteToEdit(noteToEdit);
       dispatchUiState({ type: "isNoteEdit", value: true });
     }
   };
 
-  const deleteNote = (id) => {
-    localStorage.removeItem(id);
-
-    if (sortState.searchText == "") {
-      setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
-    } else {
-      getNotesBySearchText(sortState.searchText);
-    }
-
-    const uniqueTagsArr = checkUniqueTags(getLocalNotes());
+  const checkTags = (isDeletePending = false) => {
+    const allNotes = !isDeletePending ? notesData.allNotes : notesData.allNotes.filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
+    const uniqueTagsArr = checkUniqueTags(allNotes);
     const sortedTags = sortTags(uniqueTagsArr);
-    const isTag = sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
-    if (sortState.currentTag != "0" && !isTag) {
-      changeTag();
-      setTags([DEFAULT_TAG, ...sortedTags]);
+    setTags([DEFAULT_TAG, ...sortedTags]);
+    console.log("sortedTags", sortedTags);
+    console.log("sortState.currentTag", sortState.currentTag);
+
+    const isCurrentTagDelete = !sortedTags.some((tagObj) => sortState.currentTag == "0" || tagObj.id == sortState.currentTag);
+
+    console.log("isCurrentTagDelete?", isCurrentTagDelete);
+
+    if (sortState.currentTag != "0" && isCurrentTagDelete) {
+      switchTag();
+    } else {
+      dispatchNotes({ type: "visibleNotes", value: filterNotes() });
     }
   };
+
+  const pendingToDeleteNote = () => {
+    //  localStorage.removeItem(id);
+
+    //   dispatchNotes({ type: "current", value: id });
+    if (notesData.deletingNoteIds.length) {
+      console.log("PENDING DELETE");
+
+      if (sortState.searchText == "") {
+        //   const visibleNotes = filterNotes().filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
+        //   dispatchNotes({ type: "visibleNotes", value: visibleNotes });
+        // setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
+      } else {
+        //   const visibleNotes = getNotesBySearchText(sortState.searchText).filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
+        //   dispatchNotes({ type: "visibleNotes", value: visibleNotes });
+      }
+
+      // const allNotes = notesData.allNotes.filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
+
+      checkTags(true);
+
+      // const visibleNotes = filterNotes();
+      // dispatchNotes({ type: "visibleNotes", value: visibleNotes });
+
+      //  const uniqueTagsArr = checkUniqueTags(allNotes);
+      //  const sortedTags = sortTags(uniqueTagsArr);
+      //  setTags([DEFAULT_TAG, ...sortedTags]);
+
+      //  const isCurrentTagDelete = !sortedTags.some((tagObj) => tagObj.id == sortState.currentTag);
+      //  if (sortState.currentTag != "0" && isCurrentTagDelete) {
+      //    switchTag();
+      //  }
+    }
+  };
+
+  useEffect(() => {
+    pendingToDeleteNote();
+  }, [notesData.deletingNoteIds]);
 
   const userInfo = () => {
     dispatchUiState({ type: "isUser", value: true });
   };
 
   useEffect(() => {
+    localStorage.setItem("tag", sortState.currentTag);
+    localStorage.setItem("sortType", sortState.sortType);
+    localStorage.setItem("sortDirection", sortState.sortDirection);
+
+    //  setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection))
+    dispatchNotes({ type: "visibleNotes", value: filterNotes() });
+  }, []);
+
+  useEffect(() => {
     if (isLogined) {
       dispatchUiState({ type: "isLogIn", value: false });
     }
   }, [isLogined]);
+
+  useEffect(() => {
+    console.log("FILTER");
+
+    const visibleNotes = filterNotes();
+    dispatchNotes({ type: "visibleNotes", value: visibleNotes });
+  }, [sortState, uiState.isSearch]);
 
   const getLogIn = (email, password) => {
     console.log("email APP", email);
@@ -254,7 +341,11 @@ function App() {
               className={`bg-primary-bg hover-button border-2 border-primary w-10 h-8 rounded-[50%] flex justify-center items-center sm:w-15 sm:h-10`}>
               <img className="h-full" src="images/search.png" alt="search" />
             </Button>
-            <AnimatePresence>{uiState.isSearch && <Search key="search" onClick={() => switchSearchStatus(false)} onChangeSearchInput={getNotesBySearchText} />}</AnimatePresence>
+            <AnimatePresence>
+              {uiState.isSearch && (
+                <Search searchText={sortState.searchText} key="search" onClick={() => switchSearchStatus(false)} onChangeSearchInput={(e) => dispatchSort({ type: "searchText", value: e })} />
+              )}
+            </AnimatePresence>
           </div>
           <div className="justify-self-start sm:justify-self-center">
             <Button
@@ -268,36 +359,37 @@ function App() {
           </div>
           <div className="relative flex grow justify-between gap-2">
             <div className="flex-[0_0_49%] gap-1 text-xs sm:text-sm">
-              <OptionList optionName="sortType" value={sortState.sortType} options={SORTING_KEYS} onChange={changeSort}>
+              <OptionList optionName="sortType" value={sortState.sortType} options={SORTING_KEYS} onChange={switchSort}>
                 Сортировать
               </OptionList>
               <Button
-                onClick={changeSortDirection}
+                onClick={switchSortDirection}
                 className={`flex justify-center bottom-0 left-0 absolute bg-primary-bg sm:h-5 hover-button border border-primary w-5 h-4.5 text-xs -translate-x-[calc(100%+4px)]`}>
                 <img className="h-full" src="images/sorting.png" alt="sorting" />
               </Button>
             </div>
             <div className="flex-[0_0_49%] text-xs sm:text-sm">
-              <OptionList optionName="tags" value={sortState.currentTag} options={tags} onChange={changeTag}>
+              <OptionList optionName="tags" value={sortState.currentTag} options={tags} onChange={switchTag}>
                 Тег
               </OptionList>
             </div>
           </div>
         </div>
         <LayoutGroup>
-          <motion.div layoutId="container" className="rounded-2xl py-2 px-2 sm:py-5 sm:px-5 bg-secondary-bg flex flex-col gap-2 min-h-16">
+          <motion.div layout className="rounded-2xl py-2 px-2 sm:py-5 sm:px-5 bg-secondary-bg flex flex-col gap-2 min-h-16">
             <AnimatePresence>
-              {notesData.length > 0 ? (
-                notesData.map((note) => {
+              {notesData.visibleNotes.length > 0 ? (
+                notesData.visibleNotes.map((note) => {
+                  const isDeleting = notesData.deletingNoteIds.includes(note.noteId);
                   return (
                     <motion.div
                       layout
                       key={`container_${note.noteId}`}
                       initial={{ x: 100, opacity: 0, border: "1px solid var(--color-primary)" }}
                       animate={{ x: 0, opacity: 1, border: "1px solid transparent" }}
-                      exit={{ x: -100, opacity: 0, border: "1px solid var(--color-primary)" }}>
+                      exit={{ x: isDeleting ? -100 : 0, opacity: 0, border: "1px solid var(--color-primary)" }}>
                       <Note
-                        onDelete={deleteNote}
+                        onDelete={(e) => dispatchNotes({ type: "deletingNoteIds", value: [...notesData.deletingNoteIds, e] })}
                         sortNum={sortState.sortType}
                         onClick={editNote}
                         bgColor={`bg-note-${note.priority}`}
@@ -305,7 +397,8 @@ function App() {
                         dateChange={note.dateChange}
                         dateCreate={note.dateCreate}
                         key={note.noteId}
-                        id={note.noteId}>
+                        id={note.noteId}
+                        isDeleting={notesData.deletingNoteIds.includes(note.noteId)}>
                         {note.name}
                       </Note>
                     </motion.div>
@@ -321,7 +414,7 @@ function App() {
         </LayoutGroup>
       </div>
       <AnimatePresence>
-        {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={addNewNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
+        {uiState.isNoteEdit && <EditNote noteToEdit={noteToEdit} onSave={saveNote} onClose={() => dispatchUiState({ type: "isNoteEdit", value: false })} />}
         {uiState.isUser && (
           <motion.div
             initial={{ opacity: 1, scale: 0.97 }}
