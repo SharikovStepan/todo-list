@@ -101,7 +101,7 @@ function EditNote(props) {
     <>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1, transition: { duration: 0.15, type: "spring", damping: 10, stiffness: 70, bounce: 0.45 } }}
+        animate={{ opacity: 1, scale: 1, transition: { duration: 0.1, type: "spring", damping: 10, stiffness: 200, bounce: 1.00 } }}
         exit={{ opacity: 0, scale: 0.9 }}
         className="modal flex flex-col">
         <form className="grid grid-rows-[auto_1fr_auto] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>

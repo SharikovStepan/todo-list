@@ -32,6 +32,7 @@
 
 .modal {
   @apply absolute top-10 left-1/2 z-20 border border-black -translate-x-1/2 p-2 rounded-md bg-primary-bg w-xs sm:w-lg md:w-xl min-h-2/3;
+  box-shadow: 0px 0px 20px #000;
 }
 
 .input {

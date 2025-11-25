@@ -170,21 +170,20 @@ function App() {
   };
 
   const saveNote = (noteData) => {
-    console.log("notesData.allNotesnotesData.allNotes", notesData.allNotes);
-
     const allNotesId = notesData.allNotes.map((note) => note.noteId);
-    console.log("allNotesId", allNotesId);
-    console.log("allNotesId.includes(noteData.noteId)", allNotesId.includes(noteData.noteId));
+    const isNew = !allNotesId.includes(noteData.noteId);
 
-    if (!allNotesId.includes(noteData.noteId)) {
+    if (isNew) {
       dispatchNotes({ type: "allNotes", value: [...notesData.allNotes, noteData] });
-      localStorage.setItem(noteData.noteId, JSON.stringify(noteData));
+      console.log("Новая заметка");
     } else {
-      const currentNote = notesData.allNotes.find((note) => note.noteId == noteData.noteId);
       const allNotesWithoutCurrent = notesData.allNotes.filter((note) => note.noteId != noteData.noteId);
-      dispatchNotes({ type: "allNotes", value: [...allNotesWithoutCurrent, currentNote] });
-      localStorage.setItem(noteData.noteId, JSON.stringify(noteData));
+      dispatchNotes({ type: "allNotes", value: [...allNotesWithoutCurrent, noteData] });
+      console.log("редактируемая заметка");
     }
+    localStorage.setItem(noteData.noteId, JSON.stringify(noteData));
+    dispatchUiState({ type: "isNoteEdit", value: false });
+
     //  const uniqueTagsArr = checkUniqueTags(notesData.allNotes);
 
     //  const sortedTags = sortTags(uniqueTagsArr);
@@ -195,14 +194,10 @@ function App() {
     //  }
     //  setTags([DEFAULT_TAG, ...sortedTags]);
 
-    checkTags();
     setTimeout(() => {
-		console.log('timerrrr');
-		
-      dispatchNotes({ type: "visibleNotes", value: filterNotes() });
+      console.log("timerrrr");
+      // dispatchNotes({ type: "visibleNotes", value: filterNotes() });
     }, 2000);
-
-    dispatchUiState({ type: "isNoteEdit", value: false });
   };
 
   const switchSearchStatus = (isSearch) => {
@@ -228,8 +223,8 @@ function App() {
     const uniqueTagsArr = checkUniqueTags(allNotes);
     const sortedTags = sortTags(uniqueTagsArr);
     setTags([DEFAULT_TAG, ...sortedTags]);
-    console.log("sortedTags", sortedTags);
-    console.log("sortState.currentTag", sortState.currentTag);
+
+    console.log("sortedTagssortedTagssortedTags", sortedTags);
 
     const isCurrentTagDelete = !sortedTags.some((tagObj) => sortState.currentTag == "0" || tagObj.id == sortState.currentTag);
 
@@ -237,8 +232,6 @@ function App() {
 
     if (sortState.currentTag != "0" && isCurrentTagDelete) {
       switchTag();
-    } else {
-      dispatchNotes({ type: "visibleNotes", value: filterNotes() });
     }
   };
 
@@ -249,18 +242,10 @@ function App() {
     if (notesData.deletingNoteIds.length) {
       console.log("PENDING DELETE");
 
-      if (sortState.searchText == "") {
-        //   const visibleNotes = filterNotes().filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
-        //   dispatchNotes({ type: "visibleNotes", value: visibleNotes });
-        // setNotesData(filterNotesByTag(sortState.currentTag, sortState.sortDirection));
-      } else {
-        //   const visibleNotes = getNotesBySearchText(sortState.searchText).filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
-        //   dispatchNotes({ type: "visibleNotes", value: visibleNotes });
-      }
+      const visibleNotes = filterNotes().filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
+      dispatchNotes({ type: "visibleNotes", value: visibleNotes });
 
       // const allNotes = notesData.allNotes.filter((note) => !notesData.deletingNoteIds.includes(note.noteId));
-
-      checkTags(true);
 
       // const visibleNotes = filterNotes();
       // dispatchNotes({ type: "visibleNotes", value: visibleNotes });
@@ -278,7 +263,13 @@ function App() {
 
   useEffect(() => {
     pendingToDeleteNote();
+    checkTags(true);
   }, [notesData.deletingNoteIds]);
+
+  useEffect(() => {
+    dispatchNotes({ type: "visibleNotes", value: filterNotes() });
+    checkTags();
+  }, [notesData.allNotes]);
 
   const userInfo = () => {
     dispatchUiState({ type: "isUser", value: true });
@@ -301,9 +292,7 @@ function App() {
 
   useEffect(() => {
     console.log("FILTER");
-
-    const visibleNotes = filterNotes();
-    dispatchNotes({ type: "visibleNotes", value: visibleNotes });
+    dispatchNotes({ type: "visibleNotes", value: filterNotes() });
   }, [sortState, uiState.isSearch]);
 
   const getLogIn = (email, password) => {
@@ -319,6 +308,24 @@ function App() {
 
   const closeModal = () => {
     dispatchUiState({ type: "isUser", value: false });
+  };
+
+  const notesAnimateVariants = {
+    initial: { x: 0, opacity: 0 },
+    animate: { x: 0, opacity: 1, transition: { duration: 0.2 } },
+    sortExit: { x: 0, opacity: 0, transition: { duration: 0.2 } },
+    deleteExit: {
+      x: -100,
+      opacity: 0,
+      boxShadow: "0px 0px 10px #000",
+      borderRadius: "6px",
+      transition: {
+        x: { duration: 0.2 },
+        opacity: { delay: 0.2, duration: 0.2 },
+        boxShadow: { duration: 0.15 },
+        borderRadius: { duration: 0.15 },
+      },
+    },
   };
 
   return (
@@ -376,7 +383,12 @@ function App() {
           </div>
         </div>
         <LayoutGroup>
-          <motion.div layout className="rounded-2xl py-2 px-2 sm:py-5 sm:px-5 bg-secondary-bg flex flex-col gap-2 min-h-16">
+          <motion.div
+            layout
+            key="notes-container"
+            transition={{ duration: 0.2 }}
+            style={{ borderRadius: "10px" }}
+            className=" py-2 px-2 sm:py-5 sm:px-5 bg-secondary-bg flex flex-col gap-2 min-h-16 will-change-transform">
             <AnimatePresence>
               {notesData.visibleNotes.length > 0 ? (
                 notesData.visibleNotes.map((note) => {
@@ -384,10 +396,12 @@ function App() {
                   return (
                     <motion.div
                       layout
+                      variants={notesAnimateVariants}
                       key={`container_${note.noteId}`}
-                      initial={{ x: 100, opacity: 0, border: "1px solid var(--color-primary)" }}
-                      animate={{ x: 0, opacity: 1, border: "1px solid transparent" }}
-                      exit={{ x: isDeleting ? -100 : 0, opacity: 0, border: "1px solid var(--color-primary)" }}>
+                      initial="initial"
+                      animate="animate"
+                      transition={{ duration: 0.2 }}
+                      exit={isDeleting ? "deleteExit" : "sortExit"}>
                       <Note
                         onDelete={(e) => dispatchNotes({ type: "deletingNoteIds", value: [...notesData.deletingNoteIds, e] })}
                         sortNum={sortState.sortType}
