@@ -4,8 +4,6 @@ import Button from "./Button";
 import OptionList from "./OptionList";
 import { PRIORITY_OPTIONS } from "../utils/consts";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
-import { div } from "motion/react-client";
-import { animate } from "motion";
 
 function reducer(state, action) {
   switch (action.type) {
@@ -37,12 +35,9 @@ function EditNote(props) {
   const nowDate = new Date().toLocaleString("ru-RU");
 
   if (!editingNote.noteId) {
-    try {
-      const lastId = localNotes[localNotes.length - 1].noteId.slice(5);
-      noteId = `note_${+lastId + 1}`;
-    } catch (error) {
-      noteId = `note_1`;
-    }
+    const lastId = localNotes[localNotes.length - 1]?.noteId?.slice(5);
+    noteId = lastId ? `note_${+lastId + 1}` : `note_1`;
+
     dates.create = nowDate;
     dates.createTimestamp = nowTimestamp;
     dates.change = nowDate;
@@ -82,8 +77,6 @@ function EditNote(props) {
     console.log("Отмена");
   };
 
-  console.log("editingNote1111", noteState);
-
   useEffect(() => {
     if (editingNote.name != noteState.name || editingNote.text != noteState.text || editingNote.tag != noteState.tag || editingNote.priority != noteState.priority) {
       setIsEdited(true);
@@ -101,7 +94,7 @@ function EditNote(props) {
     <>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1, transition: { duration: 0.1, type: "spring", damping: 10, stiffness: 200, bounce: 1.00 } }}
+        animate={{ opacity: 1, scale: 1, transition: { duration: 0.1, type: "spring", damping: 10, stiffness: 200, bounce: 1.0 } }}
         exit={{ opacity: 0, scale: 0.9 }}
         className="modal flex flex-col">
         <form className="grid grid-rows-[auto_1fr_auto] gap-y-1 text-xs flex-1" action="#" onSubmit={handleSubmit}>

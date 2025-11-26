@@ -9,5 +9,6 @@ export const getLocalNotes = (sortNum, direction) => {
     return numA - numB;
   });
   const notesArray = sortedKeys.map((key) => JSON.parse(localStorage.getItem(key)));
+//   return notesArray;
   return sortNotes(notesArray, sortNum, direction);
 };
