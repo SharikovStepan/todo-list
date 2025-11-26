@@ -18,6 +18,7 @@ import SingUp from "./components/SingUp";
 import UserInfo from "./components/UserInfo";
 import DeleteTimer from "./components/DeleteTimer";
 import { updateDatabaseNotes, updateDatabaseStates } from "./utils/updateDB";
+import { POST } from "../api/updateNotes";
 
 function uiStateReducer(state, action) {
   switch (action.type) {
@@ -436,6 +437,10 @@ function App() {
           }
         })}
       </AnimatePresence>
+
+      {/* <button className="border w-20 h-20 cursor-pointer" onClick={() => POST()}>
+        BUTTON
+      </button> */}
     </>
   );
 }
